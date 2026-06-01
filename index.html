@@ -3,14 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Image Gallery</title>
+    <title>Conveyor Gallery</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="gallery" id="gallery"></div>
 
-    <div class="spotlight-overlay" id="spotlightOverlay">
-        <div class="spotlight-text-container" id="spotlightText"></div>
+    <main id="gallery"></main>
+
+    <div id="overlay">
+        <img id="overlay-img" src="" alt="Spotlight Image">
+        <div id="overlay-text">
+            <div id="text-content"></div>
+        </div>
     </div>
 
     <script src="script.js"></script>
