@@ -1,113 +1,160 @@
-body {
+:root {
+    --bg-color: #252626;
+    /* This spacing controls BOTH the gap between images and the top padding */
+    --spacing: 40px; 
+    /* 8 images per row * 250px width + 8 gaps */
+    --set-width: calc((8 * 250px) + (8 * var(--spacing)));
+}
+
+body, html {
     margin: 0;
     padding: 0;
-    background-color: #252626;
-    overflow-x: hidden; 
+    background-color: var(--bg-color);
+    overflow-x: hidden;
     font-family: sans-serif;
-    color: white;
 }
 
-/* Gallery container mapping full viewport */
-.gallery {
+/* Hide scrollbar for a cleaner look */
+::-webkit-scrollbar {
+    display: none;
+}
+
+#gallery {
+    padding-top: var(--spacing);
     display: flex;
     flex-direction: column;
-    justify-content: space-evenly;
-    height: 100vh;
-    overflow: hidden;
+    gap: var(--spacing);
+    transition: filter 0.8s ease;
 }
 
-/* Moving Rows Setup */
-.row {
+/* Lowest blur when image is clicked */
+#gallery.blurred {
+    filter: blur(4px);
+}
+
+/* Stop the conveyor belt when an image is clicked to keep origins intact */
+#gallery.blurred .track {
+    animation-play-state: paused !important;
+}
+
+.row-container {
+    width: 100vw;
     display: flex;
-    gap: 30px;
+}
+
+.track {
+    display: flex;
+    gap: var(--spacing);
     width: max-content;
-    animation: drift 25s linear infinite alternate;
+    /* Smoothness for hover states */
+    transition: all 0.3s ease;
 }
 
-/* Make alternate rows drift in opposite directions */
-.row:nth-child(even) {
-    animation-direction: alternate-reverse;
-    animation-duration: 30s;
-}
-
-/* Hovering stops the row animation */
-.row:hover {
+/* Hovering over the container pauses the row */
+.row-container:hover .track {
     animation-play-state: paused;
 }
 
-/* Pause ALL rows when spotlight mode is active */
-body.spotlight-active .row {
-    animation-play-state: paused;
-}
-
-@keyframes drift {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(calc(-100% + 100vw)); }
-}
-
-/* Individual Images */
-.row img {
+.track img {
     width: 250px;
     height: 250px;
     object-fit: cover;
     cursor: pointer;
     /* Jiggly, snappy, playful cubic-bezier transition */
-    transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.row img:hover {
+.track img:hover {
+    /* Scale up and use the randomized angle set by JS */
+    transform: scale(1.35) rotate(var(--rot));
     z-index: 10;
     position: relative;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.4);
 }
 
-/* Spotlight Elements */
-.spotlight-overlay {
+/* Infinite Scrolling Animations */
+.track.left-to-right {
+    animation: scrollLeft 35s linear infinite;
+}
+
+.track.right-to-left {
+    animation: scrollRight 35s linear infinite;
+}
+
+@keyframes scrollLeft {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(calc(-1 * var(--set-width))); }
+}
+
+@keyframes scrollRight {
+    0% { transform: translateX(calc(-1 * var(--set-width))); }
+    100% { transform: translateX(0); }
+}
+
+/* --- Spotlight Overlay Styles --- */
+
+#overlay {
     position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
+    top: 0; 
+    left: 0; 
+    width: 100vw; 
+    height: 100vh;
     pointer-events: none;
     z-index: 100;
-    display: flex;
-    opacity: 0;
-    transition: opacity 0.5s ease;
+    visibility: hidden;
 }
 
-.spotlight-overlay.active {
-    pointer-events: all;
-    opacity: 1;
-    background: rgba(37, 38, 38, 0.95);
+#overlay.active {
+    pointer-events: auto;
+    visibility: visible;
 }
 
-.spotlight-text-container {
+#overlay-img {
+    position: absolute;
+    object-fit: cover;
+    /* Smooth animation for position, scale, and rotation */
+    transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+#overlay.active #overlay-img {
+    /* Fills the left half of the screen */
+    top: 0 !important;
+    left: 0 !important;
+    width: 50vw !important;
+    height: 100vh !important;
+    /* 360 Counter-clockwise rotation */
+    transform: rotate(-360deg) !important;
+}
+
+#overlay-text {
     position: absolute;
     right: 0;
     top: 0;
-    width: 50%;
-    height: 100%;
-    padding: 80px;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+    width: 50vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85); /* Darkened to read text easily */
+    color: #ffffff;
     opacity: 0;
-    transform: translateX(50px);
-    transition: all 0.5s ease 0.4s; /* Delays text appearance slightly for effect */
+    transition: opacity 0.8s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem;
+    box-sizing: border-box;
 }
 
-.spotlight-overlay.active .spotlight-text-container {
+#overlay.active #overlay-text {
     opacity: 1;
-    transform: translateX(0);
 }
 
-/* The Clone Image doing the heavy lifting for the 360 animation */
-.animating-clone {
-    position: fixed;
-    object-fit: cover;
-    z-index: 101;
-    cursor: pointer;
-    /* Smooth ease for the travel distance */
-    transition: top 0.8s ease-in-out, 
-                left 0.8s ease-in-out, 
-                width 0.8s ease-in-out, 
-                height 0.8s ease-in-out, 
-                transform 0.8s ease-in-out;
+#text-content h2 {
+    font-size: 3.5rem; /* Large but not obnoxious */
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+#text-content p {
+    font-size: 1.8rem;
+    line-height: 1.5;
+    color: #cccccc;
 }
