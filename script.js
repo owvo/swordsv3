@@ -1,4 +1,3 @@
-// Data Object formatted strictly as requested
 const imageTexts = {
     "1.png": `
         <h2>Image 1</h2>
@@ -130,125 +129,93 @@ const imageTexts = {
     `
 };
 
-// Generate Gallery Grid (4 Rows, 8 Images each)
-const gallery = document.getElementById('gallery');
-let currentImageIndex = 1;
+document.addEventListener("DOMContentLoaded", () => {
+    const gallery = document.getElementById('gallery');
+    let imgIndex = 1;
 
-for (let r = 0; r < 4; r++) {
-    const row = document.createElement('div');
-    row.className = 'row';
-    
-    for (let i = 0; i < 8; i++) {
-        if (currentImageIndex > 32) break;
-        
-        const img = document.createElement('img');
-        const filename = `${currentImageIndex}.png`;
-        img.src = filename;
-        img.dataset.id = filename;
+    // Build the 4 rows
+    for (let row = 0; row < 4; row++) {
+        const rowContainer = document.createElement('div');
+        rowContainer.className = 'row-container';
 
-        // Hover Effect Logic: Randomized askew angle + scale increase
-        img.addEventListener('mouseenter', () => {
-            // Random rotation between -15 and 15 degrees
-            const randomAngle = (Math.random() - 0.5) * 30; 
-            img.style.transform = `scale(1.35) rotate(${randomAngle}deg)`;
-        });
+        const track = document.createElement('div');
+        // Rows 1 and 3 go left-to-right. Rows 2 and 4 go right-to-left.
+        track.className = 'track ' + (row % 2 === 0 ? 'left-to-right' : 'right-to-left');
 
-        // Reset hover
-        img.addEventListener('mouseleave', () => {
-            img.style.transform = `scale(1) rotate(0deg)`;
-        });
-
-        // Open Spotlight Event
-        img.addEventListener('click', (e) => openSpotlight(e, img));
-
-        row.appendChild(img);
-        currentImageIndex++;
-    }
-    gallery.appendChild(row);
-}
-
-// Spotlight State Management
-let activeClone = null;
-let originalImg = null;
-
-function openSpotlight(e, img) {
-    e.stopPropagation();
-    if (activeClone) return;
-
-    originalImg = img;
-    const rect = img.getBoundingClientRect();
-
-    // Stops all rows from drifting in the background
-    document.body.classList.add('spotlight-active');
-
-    // Create a clone for the 360-degree animation travel
-    activeClone = document.createElement('img');
-    activeClone.src = img.src;
-    activeClone.className = 'animating-clone';
-    
-    // Set starting position (exactly where the image is on grid)
-    activeClone.style.left = `${rect.left}px`;
-    activeClone.style.top = `${rect.top}px`;
-    activeClone.style.width = `${rect.width}px`;
-    activeClone.style.height = `${rect.height}px`;
-    activeClone.style.transform = `rotate(0deg)`;
-
-    document.body.appendChild(activeClone);
-
-    // Hide the original image visually but preserve its physical space in the grid
-    originalImg.style.visibility = 'hidden';
-    originalImg.style.transform = 'scale(1) rotate(0deg)'; // reset inline hover styles
-
-    // Force browser reflow to register starting position before animating
-    activeClone.offsetWidth;
-
-    // Trigger animation to left half of screen + 360deg Counterclockwise
-    activeClone.style.left = '0px';
-    activeClone.style.top = '0px';
-    activeClone.style.width = '50vw';
-    activeClone.style.height = '100vh';
-    activeClone.style.transform = `rotate(-360deg)`;
-
-    // Display appropriate text data
-    const overlay = document.getElementById('spotlightOverlay');
-    const textContainer = document.getElementById('spotlightText');
-    textContainer.innerHTML = imageTexts[img.dataset.id] || `<h2>${img.dataset.id}</h2><p>Description missing.</p>`;
-    overlay.classList.add('active');
-}
-
-// Listen for clicks anywhere on document to close spotlight
-document.addEventListener('click', (e) => {
-    // Prevent closing if user clicks exactly on the text content block
-    if (activeClone && !e.target.closest('.spotlight-text-container')) {
-        closeSpotlight();
-    }
-});
-
-function closeSpotlight() {
-    if (!activeClone) return;
-
-    // Fade out text immediately
-    const overlay = document.getElementById('spotlightOverlay');
-    overlay.classList.remove('active');
-
-    // Get current grid coordinates of the hidden image
-    const rect = originalImg.getBoundingClientRect();
-    
-    // Animate clone back to its grid spot + 360deg Clockwise (from -360 up to 0)
-    activeClone.style.left = `${rect.left}px`;
-    activeClone.style.top = `${rect.top}px`;
-    activeClone.style.width = `${rect.width}px`;
-    activeClone.style.height = `${rect.height}px`;
-    activeClone.style.transform = `rotate(0deg)`;
-
-    // Clean up DOM once travel animation is complete
-    activeClone.addEventListener('transitionend', function handler(e) {
-        if (e.propertyName === 'transform') {
-            activeClone.removeEventListener('transitionend', handler);
-            originalImg.style.visibility = 'visible';
-            activeClone.remove();
-            activeClone = null;
-            document.body.classList.remove('spotlight-active');
+        // Capture the 8 image filenames for this row
+        const rowImages = [];
+        for (let i = 0; i < 8; i++) {
+            rowImages.push(`${imgIndex}.png`);
+            imgIndex++;
         }
+
+        // Helper function to create image elements
+        const createImg = (src) => {
+            const img = document.createElement('img');
+            img.src = src;
+            
+            // Generate a random rotation between -12deg and 12deg for the playful hover effect
+            const randomAngle = (Math.random() * 24 - 12).toFixed(2);
+            img.style.setProperty('--rot', `${randomAngle}deg`);
+
+            // Attach click event for the spotlight feature
+            img.addEventListener('click', (e) => openSpotlight(e.target, src));
+            return img;
+        };
+
+        // Append the 8 images
+        rowImages.forEach(src => track.appendChild(createImg(src)));
+        // Append the exact same 8 images AGAIN to create a seamless infinite scrolling loop
+        rowImages.forEach(src => track.appendChild(createImg(src)));
+
+        rowContainer.appendChild(track);
+        gallery.appendChild(rowContainer);
+    }
+
+    // --- Spotlight Logic ---
+    const overlay = document.getElementById('overlay');
+    const overlayImg = document.getElementById('overlay-img');
+    const textContent = document.getElementById('text-content');
+
+    // Function to trigger opening animation
+    function openSpotlight(targetImg, src) {
+        // Get the exact dimensions and position of the clicked thumbnail
+        const rect = targetImg.getBoundingClientRect();
+
+        // Preset the overlay image to strictly match the thumbnail
+        overlayImg.src = src;
+        overlayImg.style.top = rect.top + 'px';
+        overlayImg.style.left = rect.left + 'px';
+        overlayImg.style.width = rect.width + 'px';
+        overlayImg.style.height = rect.height + 'px';
+        overlayImg.style.transform = 'rotate(0deg)'; // Start at 0 rotation
+
+        // Inject the corresponding text
+        textContent.innerHTML = imageTexts[src] || '';
+        
+        // Show overlay instantly (without animation yet)
+        overlay.style.visibility = 'visible';
+
+        // Force browser reflow to ensure the CSS transition triggers
+        void overlayImg.offsetWidth;
+
+        // Apply active classes to start the smooth transitions
+        overlay.classList.add('active');
+        gallery.classList.add('blurred');
+    }
+
+    // Function to trigger closing animation (Clockwise reverse)
+    overlay.addEventListener('click', () => {
+        // Removing the class forces the image back to rotate(0deg), 
+        // which simulates a +360 clockwise rotation as it falls back into place.
+        overlay.classList.remove('active');
+        gallery.classList.remove('blurred');
+
+        // Wait for the exact duration of the CSS transition (0.8s) before hiding the element
+        setTimeout(() => {
+            if (!overlay.classList.contains('active')) {
+                overlay.style.visibility = 'hidden';
+            }
+        }, 800); 
     });
-}
+});
